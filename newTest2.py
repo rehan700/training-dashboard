@@ -6,7 +6,7 @@ import os
 # -----------------------------
 # Page Config
 # -----------------------------
-st.set_page_config(page_title="Team Event Voting Dashboard", layout="wide")
+st.set_page_config(page_title="Poll Statistics Dashboard", layout="wide")
 st.title("📊 Team Event Voting Dashboard")
 
 EMP_FILE = "Emp and Training Details.xlsx"

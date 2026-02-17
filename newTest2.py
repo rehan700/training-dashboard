@@ -7,19 +7,23 @@ import os
 # Page Config
 # -----------------------------
 st.set_page_config(page_title="Poll Statistics Dashboard", layout="wide")
-st.title("📊 Poll Statistics Dashboard")
+st.title("📊 Team Event Voting Dashboard")
 
 EMP_FILE = "Emp and Training Details.xlsx"
 
 # -----------------------------
 # Name Cleaning Function
 # -----------------------------
-def clean_name(name):
+def extract_first_last(name):
     name = str(name).lower().strip()
     name = re.sub(r"\(.*?\)", "", name)
-    name = re.sub(r"[^a-z\s]", "", name)
-    name = re.sub(r"\s+", " ", name)
-    return name
+    parts = name.split()
+
+    if len(parts) >= 2:
+        return parts[0] + " " + parts[-1]
+    elif len(parts) == 1:
+        return parts[0]
+    return ""
 
 # -----------------------------
 # Load Employee Master (Permanent)
@@ -35,7 +39,7 @@ if "Employee Name" not in df2.columns:
     st.error("❌ 'Employee Name' column not found in Employee master file.")
     st.stop()
 
-df2["Emp_key"] = df2["Employee Name"].apply(clean_name)
+df2["Emp_key"] = df2["Employee Name"].apply(extract_first_last)
 
 # -----------------------------
 # Upload Voting File (CSV or Excel)
@@ -62,7 +66,7 @@ if voted_file:
         st.stop()
 
     # -----------------------------
-    # Auto-detect YES/NO column
+    # Auto-detect YES/NO column (NEW LOGIC)
     # -----------------------------
     response_col = None
 
@@ -85,12 +89,10 @@ if voted_file:
         st.error("❌ No YES/NO response column found in uploaded file.")
         st.stop()
 
-    st.success(f"Detected Response Column: {response_col}")
-
     # -----------------------------
-    # Clean Data
+    # Clean data
     # -----------------------------
-    df["Name_key"] = df["Name"].apply(clean_name)
+    df["Name_key"] = df["Name"].apply(extract_first_last)
 
     df[response_col] = (
         df[response_col]
@@ -99,19 +101,12 @@ if voted_file:
         .str.upper()
     )
 
-    # Remove duplicate votes (keep latest)
-    df = df.drop_duplicates(subset=["Name_key"], keep="last")
+    # YES / NO split
+    yes_voters = df[df[response_col] == "YES"]
+    no_voters = df[df[response_col] == "NO"]
 
-    # Keep only valid YES/NO responses
-    valid_votes = df[df[response_col].isin(["YES", "NO"])]
-
-    yes_voters = valid_votes[valid_votes[response_col] == "YES"]
-    no_voters = valid_votes[valid_votes[response_col] == "NO"]
-
-    # -----------------------------
-    # Not Voted Calculation
-    # -----------------------------
-    voted_mask = df2["Emp_key"].isin(valid_votes["Name_key"])
+    # Not voted (ORIGINAL LOGIC - UNCHANGED)
+    voted_mask = df2["Emp_key"].isin(df["Name_key"])
     not_voted = df2[~voted_mask]
 
     # -----------------------------
@@ -119,26 +114,21 @@ if voted_file:
     # -----------------------------
     st.subheader("📌 Summary")
 
-    total_emp = len(df2)
-    yes_count = len(yes_voters)
-    no_count = len(no_voters)
-    not_voted_count = len(not_voted)
-
     col1, col2, col3, col4 = st.columns(4)
 
-    col1.metric("Total Employees", total_emp)
-    col2.metric("YES", f"{yes_count} ({yes_count/total_emp:.0%})")
-    col3.metric("NO", f"{no_count} ({no_count/total_emp:.0%})")
-    col4.metric("Not Voted", f"{not_voted_count} ({not_voted_count/total_emp:.0%})")
+    col1.metric("Total Employees", len(df2))
+    col2.metric("Total YES", f"{len(yes_voters)/len(df2)*100 if len(df2) > 0 else 0:.1f}%")
+    col3.metric("Total NO", f"{len(no_voters)/len(df2)*100 if len(df2) > 0 else 0:.1f}%")
+    col4.metric("Not Voted", f"{len(not_voted)/len(df2)*100 if len(df2) > 0 else 0:.1f}%")
 
     st.divider()
 
     # -----------------------------
-    # Voting Distribution Chart
+    # Bar Chart
     # -----------------------------
     chart_data = pd.DataFrame({
         "Response": ["YES", "NO", "Not Voted"],
-        "Count": [yes_count, no_count, not_voted_count]
+        "Count": [len(yes_voters), len(no_voters), len(not_voted)]
     })
 
     st.subheader("📊 Voting Distribution")
@@ -148,9 +138,9 @@ if voted_file:
     # Tabs
     # -----------------------------
     tab1, tab2, tab3 = st.tabs([
-        f"✅ YES Voters ({yes_count})",
-        f"❌ NO Voters ({no_count})",
-        f"⏳ Not Voted ({not_voted_count})"
+        f"✅ YES Voters ({len(yes_voters)})",
+        f"❌ NO Voters ({len(no_voters)})",
+        f"⏳ Not Voted ({len(not_voted)})"
     ])
 
     with tab1:

@@ -117,9 +117,9 @@ if voted_file:
     col1, col2, col3, col4 = st.columns(4)
 
     col1.metric("Total Employees", len(df2))
-    col2.metric("Total YES", f"{len(yes_voters)/len(df2)*100 if len(df2) > 0 else 0:.1f}%")
-    col3.metric("Total NO", f"{len(no_voters)/len(df2)*100 if len(df2) > 0 else 0:.1f}%")
-    col4.metric("Not Voted", f"{len(not_voted)/len(df2)*100 if len(df2) > 0 else 0:.1f}%")
+    col2.metric("Total YES", f"{len(yes_voters)} ({len(yes_voters)/len(df2)*100 if len(df2) > 0 else 0:.1f}%)")
+    col3.metric("Total NO", f"{len(no_voters)} ({len(no_voters)/len(df2)*100 if len(df2) > 0 else 0:.1f}%)")
+    col4.metric("Not Voted", f"{len(not_voted)} ({len(not_voted)/len(df2)*100 if len(df2) > 0 else 0:.1f}%)")
 
     st.divider()
 
